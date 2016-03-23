@@ -11,13 +11,13 @@ import struct
 import time
 
 import six
-
+from fernet import Fernet
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.hmac import HMAC
-
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 class InvalidToken(Exception):
     pass
@@ -31,10 +31,13 @@ class Fernet2(object):
         if backend is None:
             backend = default_backend()
 
+        # initialize a fernet object
+        self._f = Fernet(key, backend=backend)
+
         key = base64.urlsafe_b64decode(key)
         if len(key) != 32:
             raise ValueError(
-                "Fernet key must be 32 url-safe base64-encoded bytes."
+                "Fernet2 key must be 32 url-safe base64-encoded bytes."
             )
 
         h0 = HMAC(key, hashes.SHA256(), backend=backend)
@@ -45,8 +48,7 @@ class Fernet2(object):
         k0 = h0.finalize()[:16]
         k1 = h1.finalize()[:16]
 
-        #TODO fix   
-        # self._f = Fernet1(secret.encode("ascii"), backend=backend)
+
 
         self._signing_key = k0
         self._encryption_key = k1
@@ -71,7 +73,7 @@ class Fernet2(object):
             algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend
         ).encryptor()
         # ctx = AES( iv || msg )
-        cxt = encryptor.update(padded_data) + encryptor.finalize()
+        ctx = encryptor.update(padded_data) + encryptor.finalize()
 
         basic_parts = (
             b"\x81" + iv + ctx + adata
@@ -85,11 +87,6 @@ class Fernet2(object):
 
     def decrypt(self, token, ttl=None, adata=""):
 
-        # TODO: if 80: 
-            # call fernet decrypt
-            # create global fernet obj in init
-
-        # elif 81:
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
 
@@ -98,41 +95,47 @@ class Fernet2(object):
         except (TypeError, binascii.Error):
             raise InvalidToken
 
-        if (not data or six.indexbytes(data, 0) != 0x80) or (not data or six.indexbytes(data, 0) != 0x81):
+        if data == 0x80 or six.indexbytes(data, 0) == 0x80:
+            print("80 version\n")
+            # TODO: if 80:
+
+            return self._f.decrypt(self, token, ttl)
+        elif data == 0x81 or six.indexbytes(data, 0) == 0x81:
+            print("81 version\n")
+            h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
+            h.update(data[:-32])
+            try:
+                h.verify(data[-32:])
+            except InvalidSignature:
+                raise InvalidToken
+
+            # TODO: get associated data
+            # check for correct associated data
+
+            iv = data[9:25]
+            # find out associated data in data
+            # try satement, if adata_to_get = adata
+            ciphertext = data[25:-32]
+            decryptor = Cipher(
+                algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend
+            ).decryptor()
+            plaintext_padded = decryptor.update(ciphertext)
+            try:
+                plaintext_padded += decryptor.finalize()
+            except ValueError:
+                raise InvalidToken
+            unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+
+            unpadded = unpadder.update(plaintext_padded)
+            try:
+                unpadded += unpadder.finalize()
+            except ValueError:
+                raise InvalidToken
+            return unpadded
+
+        else:
             raise InvalidToken
 
-        
-
-        h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
-        h.update(data[:-32])
-        try:
-            h.verify(data[-32:])
-        except InvalidSignature:
-            raise InvalidToken
-
-        # TODO: get associated data
-        # check for correct associated data
-
-        iv = data[9:25]
-        ciphertext = data[25:-32]
-        decryptor = Cipher(
-            algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend
-        ).decryptor()
-        plaintext_padded = decryptor.update(ciphertext)
-        try:
-            plaintext_padded += decryptor.finalize()
-        except ValueError:
-            raise InvalidToken
-        unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-
-        unpadded = unpadder.update(plaintext_padded)
-        try:
-            unpadded += unpadder.finalize()
-        except ValueError:
-            raise InvalidToken
-        return unpadded
-        # else
-        # error
 
 class PWFernet(object):
     def __init__(self, password, backend=None):
@@ -142,7 +145,7 @@ class PWFernet(object):
         self._backend = backend
         self._password = password
     
-    def gen_encrypt_key(self, salt, password):
+    def gen_encrypt_key(self, salt = "", password = ""):
         backend = default_backend()
 
         kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000, backend=backend)
@@ -154,10 +157,10 @@ class PWFernet(object):
 
     def encrypt(self, data, adata=""):
         salt = os.urandom(16)
-        signing_key, encryption_key = gen_encrypt_key(salt, self._password)
+        signing_key, encryption_key = gen_encrypt_key(self, salt, self._password)
         return self._encrypt_from_parts(data, salt, signing_key, encryption_key)
 
-    def _encrypt_from_parts(self, data, adata="", salt, signing_key, encryption_key ):
+    def _encrypt_from_parts(self, data, adata="", salt = "", signing_key = "", encryption_key = ""):
         if not isinstance(data, bytes):
             raise TypeError("data must be bytes.")
 
@@ -167,7 +170,7 @@ class PWFernet(object):
             algorithms.AES(encryption_key), modes.CBC("0"*16), self._backend
         ).encryptor()
         # ctx = AES( iv || msg )
-        cxt = encryptor.update(padded_data) + encryptor.finalize()
+        ctx = encryptor.update(padded_data) + encryptor.finalize()
 
         basic_parts = (
             b"\x82" + salt + ctx + adata
@@ -242,3 +245,4 @@ class MultiFernet(object):
             except InvalidToken:
                 pass
         raise InvalidToken
+

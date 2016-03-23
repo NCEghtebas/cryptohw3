@@ -89,6 +89,8 @@ class Fernet2(object):
 
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
+        print("token")
+        print(token)
 
         try:
             data = base64.urlsafe_b64decode(token)
@@ -98,12 +100,13 @@ class Fernet2(object):
         if data == 0x80 or six.indexbytes(data, 0) == 0x80:
             print("80 version\n")
             # TODO: if 80:
-
             return self._f.decrypt(self, token, ttl)
         elif data == 0x81 or six.indexbytes(data, 0) == 0x81:
             print("81 version\n")
             h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
-            h.update(data[:-32])
+            print(h)
+            h.update(data[:-32]) # get everything from data except for last 32 bytes
+            print(h.update(data[:-32]))
             try:
                 h.verify(data[-32:])
             except InvalidSignature:
@@ -184,6 +187,7 @@ class PWFernet(object):
 
 
     def decrypt(self, token, ttl=None):
+
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
 
@@ -192,38 +196,48 @@ class PWFernet(object):
         except (TypeError, binascii.Error):
             raise InvalidToken
 
-        if not data or six.indexbytes(data, 0) != 0x82:
+        if data == 0x80 or six.indexbytes(data, 0) == 0x80:
+            print("80 version\n")
+            # TODO: if 80:
+            return self._f.decrypt(self, token, ttl)
+        elif data == 0x81 or six.indexbytes(data, 0) == 0x81:
+            print("81 version\n")
+            h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
+            h.update(data[:-32])
+            try:
+                h.verify(data[-32:])
+            except InvalidSignature:
+                raise InvalidToken
+
+
+            salt = data[9:25]
+
+            # create two keys from salt and decrypt message
+            ciphertext = data[25:-32]
+            decryptor = Cipher(
+                algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend
+            ).decryptor()
+            plaintext_padded = decryptor.update(ciphertext)
+            try:
+                plaintext_padded += decryptor.finalize()
+            except ValueError:
+                raise InvalidToken
+            unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+
+            unpadded = unpadder.update(plaintext_padded)
+            try:
+                unpadded += unpadder.finalize()
+            except ValueError:
+                raise InvalidToken
+            return unpadded
+
+        else:
             raise InvalidToken
 
 
-        h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
-        h.update(data[:-32])
-        try:
-            h.verify(data[-32:])
-        except InvalidSignature:
-            raise InvalidToken
 
 
-        salt = data[9:25]
 
-        # create two keys from salt and decrypt message
-        ciphertext = data[25:-32]
-        decryptor = Cipher(
-            algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend
-        ).decryptor()
-        plaintext_padded = decryptor.update(ciphertext)
-        try:
-            plaintext_padded += decryptor.finalize()
-        except ValueError:
-            raise InvalidToken
-        unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-
-        unpadded = unpadder.update(plaintext_padded)
-        try:
-            unpadded += unpadder.finalize()
-        except ValueError:
-            raise InvalidToken
-        return unpadded
 
 
 class MultiFernet(object):

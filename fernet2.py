@@ -53,12 +53,12 @@ class Fernet2(object):
     def generate_key(cls):
         return base64.urlsafe_b64encode(os.urandom(32))
 
-    def encrypt(self, data):
+    def encrypt(self, data, adata=""):
         # removed current time
         iv = os.urandom(16)
-        return self._encrypt_from_parts(data, iv)
+        return self._encrypt_from_parts(data, iv, adata)
 
-    def _encrypt_from_parts(self, data, iv):
+    def _encrypt_from_parts(self, data, iv, adata=""):
         if not isinstance(data, bytes):
             raise TypeError("data must be bytes.")
 
@@ -71,16 +71,16 @@ class Fernet2(object):
         cxt = encryptor.update(padded_data) + encryptor.finalize()
 
         basic_parts = (
-            b"\x81" + iv + ctx 
+            b"\x81" + iv + ctx + adata
         )
 
         h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
         h.update(basic_parts)
         # tag = HMAC( 0x81 || iv || ctx )
         tag = h.finalize()
-        return base64.urlsafe_b64encode( ctx + tag)
+        return base64.urlsafe_b64encode( b"\x81" + iv + ctx + tag)
 
-    def decrypt(self, token, ttl=None):
+    def decrypt(self, token, ttl=None, adata=""):
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
 
@@ -94,7 +94,8 @@ class Fernet2(object):
         if (not data or six.indexbytes(data, 0) != 0x80) or (not data or six.indexbytes(data, 0) != 0x81):
             raise InvalidToken
 
-        # how to test?
+        # call fernet decrypt
+        # create global fernet obj in init
         if (data or six.indexbytes(data, 0) == 0x80):
             try:
                 timestamp, = struct.unpack(">Q", data[1:9])
@@ -136,58 +137,51 @@ class Fernet2(object):
         return unpadded
 
 class PWFernet(object):
-    def __init__(self, key, backend=None):
+    def __init__(self, password, backend=None):
         if backend is None:
             backend = default_backend()
 
-        key = base64.urlsafe_b64decode(key)
-        if len(key) != 32:
-            raise ValueError(
-                "Fernet key must be 32 url-safe base64-encoded bytes."
-            )
-
-        h0 = HMAC(key, hashes.SHA256(), backend=backend)
-        h1 = HMAC(key, hashes.SHA256(), backend=backend)
-        # 
-        h0 .update(b"0")
-        h1 .update(b"1")
-        k0 = h0.finalize()[:16]
-        k1 = h1.finalize()[:16]
-
-        self._signing_key = k0
-        self._encryption_key = k1
         self._backend = backend
+        self._password = password
+    
+    # 
+    def gen_encrypt_key(self, salt, password):
+        backend = default_backend()
 
-    @classmethod
-    def generate_key(cls):
-        return base64.urlsafe_b64encode(os.urandom(32))
+        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000, backend=backend)
+        key = kdf.derive(password)
 
-    def encrypt(self, data):
-        # removed current time
-        iv = os.urandom(16)
-        return self._encrypt_from_parts(data, iv)
+        signing_key = key[:16]
+        encryption_key = key[16:]
+        return signing_key, encryption_key
 
-    def _encrypt_from_parts(self, data, iv):
+    def encrypt(self, data, adata):
+        salt = os.urandom(16)
+        signing_key, encryption_key = gen_encrypt_key(self._password)
+        return self._encrypt_from_parts(data, salt, signing_key, encryption_key)
+
+    def _encrypt_from_parts(self, data, adata, salt, signing_key, encryption_key ):
         if not isinstance(data, bytes):
             raise TypeError("data must be bytes.")
 
         padder = padding.PKCS7(algorithms.AES.block_size).padder()
         padded_data = padder.update(data) + padder.finalize()
         encryptor = Cipher(
-            algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend
+            algorithms.AES(encryption_key), modes.CBC("0"*16), self._backend
         ).encryptor()
         # ctx = AES( iv || msg )
         cxt = encryptor.update(padded_data) + encryptor.finalize()
 
         basic_parts = (
-            b"\x81" + iv + ctx 
+            b"\x82" + salt + ctx + adata
         )
 
-        h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
+        h = HMAC(signing_key, hashes.SHA256(), backend=self._backend)
         h.update(basic_parts)
         # tag = HMAC( 0x81 || iv || ctx )
         tag = h.finalize()
-        return base64.urlsafe_b64encode( ctx + tag)
+        return base64.urlsafe_b64encode( b"\x82" + salt + ctx + tag )
+
 
     def decrypt(self, token, ttl=None):
         if not isinstance(token, bytes):
@@ -200,23 +194,10 @@ class PWFernet(object):
         except (TypeError, binascii.Error):
             raise InvalidToken
 
-        if (not data or six.indexbytes(data, 0) != 0x80) or (not data or six.indexbytes(data, 0) != 0x81):
+        if not data or six.indexbytes(data, 0) != 0x82:
             raise InvalidToken
 
-        # how to test?
-        if (data or six.indexbytes(data, 0) == 0x80):
-            try:
-                timestamp, = struct.unpack(">Q", data[1:9])
-            except struct.error:
-                raise InvalidToken
-            if ttl is not None:
-                if timestamp + ttl < current_time:
-                    raise InvalidToken
-
-                if current_time + _MAX_CLOCK_SKEW < timestamp:
-                    print (">>>", current_time)
-                    print (">>>", timestamp)
-                    raise InvalidToken
+        
 
         h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
         h.update(data[:-32])
@@ -225,7 +206,9 @@ class PWFernet(object):
         except InvalidSignature:
             raise InvalidToken
 
-        iv = data[9:25]
+        salt = data[9:25]
+
+        # create two 
         ciphertext = data[25:-32]
         decryptor = Cipher(
             algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend

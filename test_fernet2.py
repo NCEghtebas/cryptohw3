@@ -141,5 +141,3 @@ class TestPwFernet2(object):
     This is to test the PwFernet class.
     """
     pass
-
-f = Fernet2(Fernet2.generate_key())

@@ -45,6 +45,9 @@ class Fernet2(object):
         k0 = h0.finalize()[:16]
         k1 = h1.finalize()[:16]
 
+        #TODO fix   
+        # self._f = Fernet1(secret.encode("ascii"), backend=backend)
+
         self._signing_key = k0
         self._encryption_key = k1
         self._backend = backend
@@ -81,10 +84,14 @@ class Fernet2(object):
         return base64.urlsafe_b64encode( b"\x81" + iv + ctx + tag)
 
     def decrypt(self, token, ttl=None, adata=""):
+
+        # TODO: if 80: 
+            # call fernet decrypt
+            # create global fernet obj in init
+
+        # elif 81:
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
-
-        current_time = int(time.time())
 
         try:
             data = base64.urlsafe_b64decode(token)
@@ -94,21 +101,7 @@ class Fernet2(object):
         if (not data or six.indexbytes(data, 0) != 0x80) or (not data or six.indexbytes(data, 0) != 0x81):
             raise InvalidToken
 
-        # call fernet decrypt
-        # create global fernet obj in init
-        if (data or six.indexbytes(data, 0) == 0x80):
-            try:
-                timestamp, = struct.unpack(">Q", data[1:9])
-            except struct.error:
-                raise InvalidToken
-            if ttl is not None:
-                if timestamp + ttl < current_time:
-                    raise InvalidToken
-
-                if current_time + _MAX_CLOCK_SKEW < timestamp:
-                    print (">>>", current_time)
-                    print (">>>", timestamp)
-                    raise InvalidToken
+        
 
         h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
         h.update(data[:-32])
@@ -116,6 +109,9 @@ class Fernet2(object):
             h.verify(data[-32:])
         except InvalidSignature:
             raise InvalidToken
+
+        # TODO: get associated data
+        # check for correct associated data
 
         iv = data[9:25]
         ciphertext = data[25:-32]
@@ -135,6 +131,8 @@ class Fernet2(object):
         except ValueError:
             raise InvalidToken
         return unpadded
+        # else
+        # error
 
 class PWFernet(object):
     def __init__(self, password, backend=None):
@@ -187,8 +185,6 @@ class PWFernet(object):
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
 
-        current_time = int(time.time())
-
         try:
             data = base64.urlsafe_b64decode(token)
         except (TypeError, binascii.Error):
@@ -197,7 +193,6 @@ class PWFernet(object):
         if not data or six.indexbytes(data, 0) != 0x82:
             raise InvalidToken
 
-        
 
         h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
         h.update(data[:-32])
@@ -206,9 +201,10 @@ class PWFernet(object):
         except InvalidSignature:
             raise InvalidToken
 
+
         salt = data[9:25]
 
-        # create two 
+        # create two keys from salt and decrypt message
         ciphertext = data[25:-32]
         decryptor = Cipher(
             algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend

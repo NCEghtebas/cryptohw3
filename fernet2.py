@@ -142,7 +142,6 @@ class PWFernet(object):
         self._backend = backend
         self._password = password
     
-    # 
     def gen_encrypt_key(self, salt, password):
         backend = default_backend()
 
@@ -153,12 +152,12 @@ class PWFernet(object):
         encryption_key = key[16:]
         return signing_key, encryption_key
 
-    def encrypt(self, data, adata):
+    def encrypt(self, data, adata=""):
         salt = os.urandom(16)
-        signing_key, encryption_key = gen_encrypt_key(self._password)
+        signing_key, encryption_key = gen_encrypt_key(salt, self._password)
         return self._encrypt_from_parts(data, salt, signing_key, encryption_key)
 
-    def _encrypt_from_parts(self, data, adata, salt, signing_key, encryption_key ):
+    def _encrypt_from_parts(self, data, adata="", salt, signing_key, encryption_key ):
         if not isinstance(data, bytes):
             raise TypeError("data must be bytes.")
 

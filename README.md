@@ -36,7 +36,7 @@ txt = f.decrypt(token=ctx, adata=associated_data)
 
 PWFernet is a password based Fernet class but is passed in a user chosen password instead of a key. PWFernet takes the users message (arbitrary length of bytes), a password (arbitrary length of bytes),  and the associated data (arbitrary length of bytes) to produce the token or ciphertext that can be retreived by decrypting with the associated data. The password is used to genereate a key to allow for added level of security (since the key management is all internal).
 
-###Useage of Fernet2
+###Useage of PWFernet
  
 ```python
 from fernet import PWFernet

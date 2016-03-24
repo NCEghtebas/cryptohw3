@@ -76,7 +76,7 @@ class Fernet2(object):
             b"\x81" + iv + ctx
         )
         # print(str(len(basic_parts)), "basic_parts_len == ", basic_parts)
-        print("iv = " + str(len(iv)), iv)
+        # print("iv = " + str(len(iv)), iv)
         # print(str(len(ctx)), "ctx == ", ctx)
         # print("adata == " , len(adata), adata)
         h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
@@ -89,13 +89,13 @@ class Fernet2(object):
     def decrypt(self, token, ttl=None, adata=""):
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
-        print("token = ", token)
+        # print("token = ", token)
 
         try:
             data = base64.urlsafe_b64decode(token)
         except (TypeError, binascii.Error):
             raise InvalidToken
-        print("data = ", data)
+        # print("data = ", data)
         if not data or six.indexbytes(data, 0) == 0x80:
             print("80 version\n")
             # TODO: if 80:
@@ -106,7 +106,7 @@ class Fernet2(object):
                 raise InvalidToken
 
         elif not data or six.indexbytes(data, 0) == 0x81:
-            print("81 version\n")
+            # print("81 version\n")
 
             ############ VERIFYING adata
             # print("data = " + str(len(data)), data)
@@ -137,7 +137,7 @@ class Fernet2(object):
 
             # iv = data[9:25]
             iv = data[1:17]
-            print("iv == " + str(len(iv)), iv)
+            # print("iv == " + str(len(iv)), iv)
             # find out associated data in data
             # try satement, if adata_to_get = adata
             ciphertext = data[17:-32]
@@ -182,7 +182,7 @@ class PWFernet(object):
 
     def encrypt(self, data, adata=""):
         salt = os.urandom(16)
-        print("salt == " + str(len(salt)), salt)
+        # print("salt == " + str(len(salt)), salt)
         signing_key, encryption_key = self.gen_encrypt_key(salt, self._password)
         return self._encrypt_from_parts(data, adata, salt, signing_key, encryption_key)
 
@@ -221,13 +221,13 @@ class PWFernet(object):
             raise InvalidToken
 
         if data == 0x82 or six.indexbytes(data, 0) == 0x82:
-            print("82 version\n")
+            # print("82 version\n")
             try:
                 salt = data[1:17]
             except ValueError:
                 raise InvalidToken
 
-            print("salt == " + str(len(salt)), salt)
+            # print("salt == " + str(len(salt)), salt)
             # is this producing same signing and encrypt key? YES!
             signing_key, encryption_key = self.gen_encrypt_key(salt, self._password)
             # print("signing_key == " + str(len(signing_key)), signing_key)
@@ -239,10 +239,10 @@ class PWFernet(object):
             basic_adata = basic_parts + base64.urlsafe_b64decode(base64.urlsafe_b64encode(adata))
             # print("==================", base64.urlsafe_b64decode(base64.urlsafe_b64encode(adata)))
             h.update(basic_adata)
-            print("basic_parts_len = " + str(len(basic_parts)), basic_parts)
+            # print("basic_parts_len = " + str(len(basic_parts)), basic_parts)
 
-            print("basic_adata = " + str(len(basic_adata)), basic_adata)
-            print("adata = " , len(adata), adata)
+            # print("basic_adata = " + str(len(basic_adata)), basic_adata)
+            # print("adata = " , len(adata), adata)
             try:
                 h.verify(data[-32:])
             except InvalidSignature:

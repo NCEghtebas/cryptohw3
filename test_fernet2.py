@@ -13,7 +13,7 @@ import time
 import iso8601
 
 import pytest
-
+from sets import Set
 import six
 from fernet import Fernet
 from fernet2 import PWFernet
@@ -160,35 +160,43 @@ class TestFernet2(object):
         payload = f.decrypt(ctxt.encode("ascii"), adata = adata)
         assert payload == ptxt.encode("ascii")
 
+    @json_parametrize2(
+        ("adata", "secret", "ptxt", "ctxt", "iv"), "verify.json",
+    )
     def test_encrypt(self, adata, secret, ptxt, ctxt, iv, backend,
                     monkeypatch):
         print("testing ....encrypt")
         f = Fernet2(secret.encode("ascii"), backend=backend)
         # is this correct or should I use this? base64.urlsafe_b64encode(os.urandom(32))
-        current_rand =  os.urandom(32)
-        # TODO  use orurandom instead of time to test IV
-        monkeypatch.setattr(os.urandom, "urandom", lambda: current_rand)
+        current_rand =  os.urandom(16)
+        monkeypatch.setattr(os, "urandom", lambda: current_rand)
         # would this even work to check decryption with another key?
         payload = f.decrypt(ctxt.encode("ascii"), adata = adata)
-        assert payload == ptxt.encode("ascii")    
+        assert payload == ptxt.encode("ascii")
 
-        # I dont get the difference between test invalid and test verify, 
+        # I dont get the difference between test invalid and test verify,
         # do we need a test invalid and test verify for Fernet2?
 
-    def test_adata(self, adata, secret, ptxt, ctxt, iv, backend,
-                    monkeypatch):
-        print("testing ....adata")
+    def test_adata(self, backend):
+        adata = "Hello"
+        ptxt = "spring break is coming"
+        secret = "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
         f = Fernet2(secret.encode("ascii"), backend=backend)
-        # How?
-        # encrypt and create new associated data
-        # 
+        ctxt = f.encrypt(ptxt, adata)
+        adata_diff = "Hello World"
+        with pytest.raises(InvalidToken):
+            f.decrypt(token = ctxt, adata = adata_diff)
 
+    # secret = "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
+    # # f = Fernet2(base64.urlsafe_b64encode(b"\x00" * 32), backend=default_backend())
+    # f = Fernet2(secret, backend=default_backend())
+    # msg = "Test Message 2"
+    # adata = "Hello"
+    # tk = f.encrypt(msg, adata)
+    # print("ctxt", tk)
+    # txt = f.decrypt(token=tk, adata=adata)
+    # print("ptxt", txt)
 
-    # f = Fernet2(base64.urlsafe_b64encode(b"\x00" * 32), backend=default_backend())
-    # msg = "spring break is coming!!!"
-    # tk = f.encrypt(msg, "have funnnn")
-    # txt = f.decrypt(token=tk, adata="have funnnn")
-    # print(txt)
     # pass
     # check the mac if it authenticates correctly or not
     # keep chaning associated data
@@ -204,18 +212,20 @@ class TestPwFernet2(object):
     # check tfor duplicates 
 
     # use the same password to encrypt and make sure nothing is repeated
-    # password = "password"
-    # f = PWFernet(password, backend=default_backend())
-    # adata = "have funnnn"
-    # tk = f.encrypt("spring break is  ??#$!$%@$#%@#$coming!!!", adata)
-    # print(tk)
-    # txt = f.decrypt(token=tk, adata = adata)
-    # # f = Fernet(base64.urlsafe_b64encode(b"\x00" * 32))
-    # print(txt)
+    password = "password"
+    f = PWFernet(password, backend=default_backend())
+    ptxt = "Crypto"
+    s = Set()
+    limit = 500
+    for i in range(limit):
+        ctxt = f.encrypt(ptxt, adata = "Spring break!")
+        s.add(ctxt)
+    assert len(s) == limit # checking the uniqueness of all the cipher text generated
 
-    pass
+
+
 # t = TestFernet()
 # t.test_verify()
-# TestPwFernet2()
+# TestFernet2()
 # t.test_roundtrips("hello", default_backend())
 # TestFernet2()

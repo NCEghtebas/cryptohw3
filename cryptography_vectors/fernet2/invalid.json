@@ -1,0 +1,58 @@
+[
+  {
+    "desc": "incorrect mac",
+    "ctxt": "gAAAAAAdwJ6xAAECAwQFBgcICQoLDA0OD3HkMATM5lFqGaerZ-fWPAl1-szkFVzXTuGb4hR8AKtwcaX1YdykQUFBQUFBQUFBQQ==",
+    "adata": "1985-10-26T01:20:01-07:00",
+    "ttl_sec": 60,
+    "secret": "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
+  },
+  {
+    "desc": "too short",
+    "ctxt": "gAAAAAAdwJ6xAAECAwQFBgcICQoLDA0OD3HkMATM5lFqGaerZ-fWPA==",
+    "adata": "1985-10-26T01:20:01-07:00",
+    "ttl_sec": 60,
+    "secret": "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
+  },
+  {
+    "desc": "invalid base64",
+    "ctxt": "%%%%%%%%%%%%%AECAwQFBgcICQoLDA0OD3HkMATM5lFqGaerZ-fWPAl1-szkFVzXTuGb4hR8AKtwcaX1YdykRtfsH-p1YsUD2Q==",
+    "adata": "1985-10-26T01:20:01-07:00",
+    "ttl_sec": 60,
+    "secret": "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
+  },
+  {
+    "desc": "payload size not multiple of block size",
+    "ctxt": "gAAAAAAdwJ6xAAECAwQFBgcICQoLDA0OD3HkMATM5lFqGaerZ-fWPOm73QeoCk9uGib28Xe5vz6oxq5nmxbx_v7mrfyudzUm",
+    "adata": "1985-10-26T01:20:01-07:00",
+    "ttl_sec": 60,
+    "secret": "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
+  },
+  {
+    "desc": "payload padding error",
+    "ctxt": "gAAAAAAdwJ6xAAECAwQFBgcICQoLDA0ODz4LEpdELGQAad7aNEHbf-JkLPIpuiYRLQ3RtXatOYREu2FWke6CnJNYIbkuKNqOhw==",
+    "adata": "1985-10-26T01:20:01-07:00",
+    "ttl_sec": 60,
+    "secret": "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
+  },
+  {
+    "desc": "far-future TS (unacceptable clock skew)",
+    "ctxt": "gAAAAAAdwStRAAECAwQFBgcICQoLDA0OD3HkMATM5lFqGaerZ-fWPAnja1xKYyhd-Y6mSkTOyTGJmw2Xc2a6kBd-iX9b_qXQcw==",
+    "adata": "1985-10-26T01:20:01-07:00",
+    "ttl_sec": 60,
+    "secret": "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
+  },
+  {
+    "desc": "expired TTL",
+    "ctxt": "gAAAAAAdwJ6xAAECAwQFBgcICQoLDA0OD3HkMATM5lFqGaerZ-fWPAl1-szkFVzXTuGb4hR8AKtwcaX1YdykRtfsH-p1YsUD2Q==",
+    "adata": "1985-10-26T01:21:31-07:00",
+    "ttl_sec": 60,
+    "secret": "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
+  },
+  {
+    "desc": "incorrect IV (causes padding error)",
+    "ctxt": "gAAAAAAdwJ6xBQECAwQFBgcICQoLDA0OD3HkMATM5lFqGaerZ-fWPAkLhFLHpGtDBRLRTZeUfWgHSv49TF2AUEZ1TIvcZjK1zQ==",
+    "adata": "1985-10-26T01:20:01-07:00",
+    "ttl_sec": 60,
+    "secret": "cx_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4="
+  }
+]

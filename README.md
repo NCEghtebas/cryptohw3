@@ -1,72 +1,57 @@
 # Fernet2 and PWFernet Spec Sheet
 
-Inspired by [link](http://tomdoc.org),
-It is **not** a preprocessor,
+To use functions in this cryptohw libaray, first download the git and include in your directory.
 
-## Fernet2
+##Fernet2 
 
+Fernet2 is based off of the python crypto Fernet implementation. Fernet2 handles associated data for use of tamper detection. Upon initialization, the key used to genereate Fernet2 is HMACed and split into siging and encryption keys. 
 
-n *how people work with CSS* —
-
-
-### Format
-
- example:
-
-```css
-/*
-A button suitable for giving stars to someone.
-
-:hover             - Subtle hover highlight.
-.stars-given       - A highlight indicating you've already given a star.
-.stars-given:hover - Subtle hover highlight on top of stars-given styling.
-.disabled          - Dims the button to indicate it cannot be used.
-
-Styleguide 2.1.3.
-*/
-a.button.star{
-  ...
-}
-a.button.star.stars-given{
-  ...
-}
-a.button.star.disabled{
-  ...
-}
+###Useage of Fernet2
+ 
+```python
+from fernet import Fernet2
+import os
+key = os.urandom(32)
+f = Fernet2(key)
+msg = "spring break is coming!!!"
+associated_data = "have funnnn"
+ctx = f.encrypt(msg, associated_data)
+txt = f.decrypt(token=ctx, adata=associated_data)
 ```
 
+##PWFernet
+
+PWFernet 
+
+<!--Inspired by [link](http://tomdoc.org),-->
+<!-- **bold** -->
+<!-- *italics* —-->
+
+<!--code: ```css-->
+<!--a.button.star{-->
+<!--  ...-->
+<!--}-->
+<!--a.button.star.stars-given{-->
+<!--  ...-->
+<!--}-->
+<!--a.button.star.disabled{-->
+<!--  ...-->
+<!--}-->
+<!--```-->
 
 
-**Experimental** 
+    <!--1. Buttons-->
+    <!--  1.1 Form Buttons-->
+    <!--    1.1.1 Generic form button-->
+    <!--    1.1.2 Special form button-->
+    <!--  1.2 Social buttons-->
+    <!--  1.3 Miscelaneous buttons-->
+    <!--2. Form elements-->
+    <!--  2.1 Text fields-->
+    <!--  2.2 Radio and checkboxes-->
+    <!--3. Text styling-->
+    <!--4. Tables-->
+    <!--  4.1 Number tables-->
+    <!--  4.2 Diagram tables-->
 
-
-### The modifiers section
-
-If the UI element you are documenting has multiple states or styles depending on added classes or pseudo-classes, you should document them in the modifiers section.
-
-```scss
-// :hover             - Subtle hover highlight.
-// .stars-given       - A highlight indicating you've already given a star.
-// .stars-given:hover - Subtle hover highlight on top of stars-given styling.
-// .disabled          - Dims the button to indicate it cannot be used.
-```
-
-### The styleguide section
-
-If the UI element you are documenting has an example in the styleguide, you should reference it using the "Styleguide [ref]" syntax.
-
-
-    1. Buttons
-      1.1 Form Buttons
-        1.1.1 Generic form button
-        1.1.2 Special form button
-      1.2 Social buttons
-      1.3 Miscelaneous buttons
-    2. Form elements
-      2.1 Text fields
-      2.2 Radio and checkboxes
-    3. Text styling
-    4. Tables
-      4.1 Number tables
-      4.2 Diagram tables
 

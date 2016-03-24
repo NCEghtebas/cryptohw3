@@ -42,10 +42,10 @@ PWFernet is a password based Fernet class but is passed in a user chosen passwor
 from fernet import PWFernet
 import os
 
+password = "beach"
 f = PWFernet(password, backend=default_backend())
 adata = "have funnnn"
 tk = f.encrypt("spring break is coming!!!", adata)
-print(tk)
 txt = f.decrypt(token=tk, adata = adata)
 ```
 

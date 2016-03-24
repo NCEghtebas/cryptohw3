@@ -181,13 +181,16 @@ class PWFernet(object):
 
     def encrypt(self, data, adata=""):
         salt = os.urandom(16)
-        signing_key, encryption_key = gen_encrypt_key(self, salt, self._password)
-        return self._encrypt_from_parts(data, salt, signing_key, encryption_key)
+        print("salt == " + str(len(salt)), salt)
+        signing_key, encryption_key = self.gen_encrypt_key(salt, self._password)
+        return self._encrypt_from_parts(data, adata, salt, signing_key, encryption_key)
 
     def _encrypt_from_parts(self, data, adata="", salt = "", signing_key = "", encryption_key = ""):
         if not isinstance(data, bytes):
             raise TypeError("data must be bytes.")
 
+        # print("signing_key = " + str(len(signing_key)), signing_key)
+        # print("encryption_key = " + str(len(encryption_key)), encryption_key)
         padder = padding.PKCS7(algorithms.AES.block_size).padder()
         padded_data = padder.update(data) + padder.finalize()
         encryptor = Cipher(
@@ -197,17 +200,16 @@ class PWFernet(object):
         ctx = encryptor.update(padded_data) + encryptor.finalize()
 
         basic_parts = (
-            b"\x82" + salt + ctx + adata
+            b"\x82" + salt + ctx
         )
 
         h = HMAC(signing_key, hashes.SHA256(), backend=self._backend)
-        h.update(basic_parts)
+        h.update(basic_parts + adata)
         # tag = HMAC( 0x81 || iv || ctx )
         tag = h.finalize()
-        return base64.urlsafe_b64encode( b"\x82" + salt + ctx + tag )
+        return base64.urlsafe_b64encode( basic_parts + tag )
 
-
-    def decrypt(self, token, ttl=None):
+    def decrypt(self, token, ttl=None, adata = ""):
 
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
@@ -217,26 +219,54 @@ class PWFernet(object):
         except (TypeError, binascii.Error):
             raise InvalidToken
 
-        if data == 0x80 or six.indexbytes(data, 0) == 0x80:
-            print("80 version\n")
-            # TODO: if 80:
-            return self._f.decrypt(self, token, ttl)
-        elif data == 0x81 or six.indexbytes(data, 0) == 0x81:
-            print("81 version\n")
-            h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
-            h.update(data[:-32])
+        if data == 0x82 or six.indexbytes(data, 0) == 0x82:
+            print("82 version\n")
+            try:
+                salt = data[1:17]
+            except ValueError:
+                raise InvalidToken
+
+            print("salt == " + str(len(salt)), salt)
+            # is this producing same signing and encrypt key? YES!
+            signing_key, encryption_key = self.gen_encrypt_key(salt, self._password)
+            # print("signing_key == " + str(len(signing_key)), signing_key)
+            # print("encryption_key == " + str(len(encryption_key)), encryption_key)
+            ############ VERIFYING adata
+            # print("data = " + str(len(data)), data)
+            h = HMAC(signing_key, hashes.SHA256(), backend=self._backend)
+            basic_parts = data[:-32]
+            basic_adata = basic_parts + base64.urlsafe_b64decode(base64.urlsafe_b64encode(adata))
+            # print("==================", base64.urlsafe_b64decode(base64.urlsafe_b64encode(adata)))
+            h.update(basic_adata)
+            print("basic_parts_len = " + str(len(basic_parts)), basic_parts)
+
+            print("basic_adata = " + str(len(basic_adata)), basic_adata)
+            print("adata = " , len(adata), adata)
             try:
                 h.verify(data[-32:])
             except InvalidSignature:
                 raise InvalidToken
 
+            ################ signature stuff from fernet.py
+            # h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
+            # h.update(data[:-32]) # get everything from data except for last 32 bytes
+            # # print(h.update(data[:-32]))
+            # try:
+            #     # verifying signature with the last 32 bytes
+            #     h.verify(data[-32:])
+            # except InvalidSignature:
+            #     raise InvalidToken
+            ################ END-OF signature stuff from fernet.py
+            # TODO: get associated data
+            # check for correct associated data
 
-            salt = data[9:25]
+            # iv = data[9:25]
 
-            # create two keys from salt and decrypt message
-            ciphertext = data[25:-32]
+            # find out associated data in data
+            # try satement, if adata_to_get = adata
+            ciphertext = data[17:-32]
             decryptor = Cipher(
-                algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend
+                algorithms.AES(encryption_key), modes.CBC("0"*16), self._backend
             ).decryptor()
             plaintext_padded = decryptor.update(ciphertext)
             try:

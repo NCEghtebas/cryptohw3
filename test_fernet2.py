@@ -15,7 +15,8 @@ import time
 import pytest
 
 import six
-from fernet import Fernet, PWFernet
+from fernet import Fernet
+from fernet2 import PWFernet
 from fernet2 import Fernet2, InvalidToken, MultiFernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends.interfaces import CipherBackend, HMACBackend
@@ -134,9 +135,7 @@ class TestFernet2(object):
     # msg = "spring break is coming!!!"
     # tk = f.encrypt(msg, "have funnnn")
     # txt = f.decrypt(token=tk, adata="have funnnn")
-    #
-
-    print(txt)
+    # print(txt)
     # pass
     # check the mac if it authenticates correctly or not
     # keep chaning associated data
@@ -146,11 +145,14 @@ class TestPwFernet2(object):
     """
     This is to test the PwFernet class.
     """
-    f = PWFernet(base64.urlsafe_b64encode(b"\x00" * 32), backend=default_backend())
-    msg = "spring break is coming!!!"
-    tk = f.encrypt(msg, "have funnnn")
-    txt = f.decrypt(token=tk, adata="have funnnn")
+    password = "password"
+    f = PWFernet(password, backend=default_backend())
+    adata = "have funnnn"
+    tk = f.encrypt("spring break is  ??#$!$%@$#%@#$coming!!!", adata)
+    print(tk)
+    txt = f.decrypt(token=tk, adata = adata)
     # f = Fernet(base64.urlsafe_b64encode(b"\x00" * 32))
+    print(txt)
 
     pass
 # TestPwFernet2()

@@ -48,8 +48,6 @@ class Fernet2(object):
         k0 = h0.finalize()[:16]
         k1 = h1.finalize()[:16]
 
-
-
         self._signing_key = k0
         self._encryption_key = k1
         self._backend = backend
@@ -91,7 +89,7 @@ class Fernet2(object):
     def decrypt(self, token, ttl=None, adata=""):
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
-        print("token = " , token)
+        print("token = ", token)
 
         try:
             data = base64.urlsafe_b64decode(token)
@@ -114,7 +112,7 @@ class Fernet2(object):
             # print("data = " + str(len(data)), data)
             h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
             basic_parts = data[:-32]
-            basic_adata = basic_parts + base64.urlsafe_b64decode(base64.urlsafe_b64encode(adata))
+            basic_adata = basic_parts + bytes(adata)
             # print("==================", base64.urlsafe_b64decode(base64.urlsafe_b64encode(adata)))
             h.update(basic_adata)
             # print("basic_parts_len = " + str(len(basic_parts)), basic_parts)

@@ -74,51 +74,72 @@ class Fernet2(object):
         ).encryptor()
         # ctx = AES( iv || msg )
         ctx = encryptor.update(padded_data) + encryptor.finalize()
-
         basic_parts = (
-            b"\x81" + iv + ctx + adata
+            b"\x81" + iv + ctx
         )
-
+        # print(str(len(basic_parts)), "basic_parts_len == ", basic_parts)
+        print("iv = " + str(len(iv)), iv)
+        # print(str(len(ctx)), "ctx == ", ctx)
+        # print("adata == " , len(adata), adata)
         h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
-        h.update(basic_parts)
+        h.update(basic_parts+adata)
         # tag = HMAC( 0x81 || iv || ctx )
         tag = h.finalize()
-        return base64.urlsafe_b64encode( b"\x81" + iv + ctx + tag)
+        # print("tag = " , len(tag))
+        return base64.urlsafe_b64encode( basic_parts + tag)
 
     def decrypt(self, token, ttl=None, adata=""):
-
         if not isinstance(token, bytes):
             raise TypeError("token must be bytes.")
-        print("token")
-        print(token)
+        print("token = " , token)
 
         try:
             data = base64.urlsafe_b64decode(token)
         except (TypeError, binascii.Error):
             raise InvalidToken
-
+        print("data = " , data)
         if data == 0x80 or six.indexbytes(data, 0) == 0x80:
             print("80 version\n")
             # TODO: if 80:
             return self._f.decrypt(self, token, ttl)
         elif data == 0x81 or six.indexbytes(data, 0) == 0x81:
             print("81 version\n")
+
+            ############ VERIFYING adata
+            # print("data = " + str(len(data)), data)
             h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
-            print(h)
-            h.update(data[:-32]) # get everything from data except for last 32 bytes
-            print(h.update(data[:-32]))
+            basic_parts = data[:-32]
+            basic_adata = basic_parts + base64.urlsafe_b64decode(base64.urlsafe_b64encode(adata))
+            # print("==================", base64.urlsafe_b64decode(base64.urlsafe_b64encode(adata)))
+            h.update(basic_adata)
+            # print("basic_parts_len = " + str(len(basic_parts)), basic_parts)
+
+            # print("basic_adata = " + str(len(basic_adata)), basic_adata)
+            # print("adata = " , len(adata), adata)
             try:
                 h.verify(data[-32:])
             except InvalidSignature:
                 raise InvalidToken
 
+            ################ signature stuff from fernet.py
+            # h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
+            # h.update(data[:-32]) # get everything from data except for last 32 bytes
+            # # print(h.update(data[:-32]))
+            # try:
+            #     # verifying signature with the last 32 bytes
+            #     h.verify(data[-32:])
+            # except InvalidSignature:
+            #     raise InvalidToken
+            ################ END-OF signature stuff from fernet.py
             # TODO: get associated data
             # check for correct associated data
 
-            iv = data[9:25]
+            # iv = data[9:25]
+            iv = data[1:17]
+            print("iv == " + str(len(iv)), iv)
             # find out associated data in data
             # try satement, if adata_to_get = adata
-            ciphertext = data[25:-32]
+            ciphertext = data[17:-32]
             decryptor = Cipher(
                 algorithms.AES(self._encryption_key), modes.CBC(iv), self._backend
             ).decryptor()

@@ -10,12 +10,12 @@ import json
 import os
 import time
 
-import iso8601
+# import iso8601
 
 import pytest
 
 import six
-
+from fernet import Fernet, PWFernet
 from fernet2 import Fernet2, InvalidToken, MultiFernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends.interfaces import CipherBackend, HMACBackend
@@ -52,7 +52,7 @@ class TestFernet(object):
     """This is basically the tests given in test_fernet.py. This tests
     the bacward compatibility of the new Fernet2. 
     """
-    
+
     ## This test will not work with new Fernet implementation. No need to worry about it.
     # @json_parametrize(
     #     ("secret", "now", "iv", "src", "token"), "generate.json",
@@ -130,7 +130,13 @@ class TestFernet2(object):
     """Test the new Fernet2 with this class. Make sure it tests all the
     functionalities offered by *Fernet2*.
     """
-    # f = Fernet2(base64.urlsafe_b64encode(b"\x00" * 32))
+    # f = Fernet2(base64.urlsafe_b64encode(b"\x00" * 32), backend=default_backend())
+    # msg = "spring break is coming!!!"
+    # tk = f.encrypt(msg, "have funnnn")
+    # txt = f.decrypt(token=tk, adata="have funnnn")
+    #
+
+    print(txt)
     # pass
     # check the mac if it authenticates correctly or not
     # keep chaning associated data
@@ -140,4 +146,13 @@ class TestPwFernet2(object):
     """
     This is to test the PwFernet class.
     """
+    f = PWFernet(base64.urlsafe_b64encode(b"\x00" * 32), backend=default_backend())
+    msg = "spring break is coming!!!"
+    tk = f.encrypt(msg, "have funnnn")
+    txt = f.decrypt(token=tk, adata="have funnnn")
+    # f = Fernet(base64.urlsafe_b64encode(b"\x00" * 32))
+
     pass
+# TestPwFernet2()
+# t.test_roundtrips("hello", default_backend())
+# TestFernet2()

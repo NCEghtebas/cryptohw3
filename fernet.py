@@ -64,10 +64,11 @@ class Fernet(object):
         basic_parts = (
             b"\x80" + struct.pack(">Q", current_time) + iv + ciphertext
         )
-
+        # print(len(basic_parts))
         h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
         h.update(basic_parts)
         hmac = h.finalize()
+        print(len(hmac))
         return base64.urlsafe_b64encode(basic_parts + hmac)
 
     def decrypt(self, token, ttl=None):
@@ -100,6 +101,7 @@ class Fernet(object):
         h = HMAC(self._signing_key, hashes.SHA256(), backend=self._backend)
         h.update(data[:-32])
         try:
+            # verify everything in data except for tag is the same as original
             h.verify(data[-32:])
         except InvalidSignature:
             raise InvalidToken

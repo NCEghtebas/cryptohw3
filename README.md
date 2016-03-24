@@ -49,29 +49,6 @@ tk = f.encrypt("spring break is coming!!!", adata)
 txt = f.decrypt(token=tk, adata = adata)
 ```
 
-<!--Inspired by [link](http://tomdoc.org),-->
-<!-- **bold** -->
-<!-- *italics* —-->
-
-<!--code: ```css-->
-<!--a.button.star{-->
-<!--  ...-->
-<!--}-->
-<!--a.button.star.stars-given{-->
-<!--  ...-->
-<!--}-->
-<!--a.button.star.disabled{-->
-<!--  ...-->
-<!--}-->
-<!--```-->
-
-
-<!--1. Buttons-->
-<!--  1.1 Form Buttons-->
-<!--    1.1.1 Generic form button-->
-<!--    1.1.2 Special form button-->
-<!--  1.2 Social buttons-->
-<!--  1.3 Miscelaneous buttons-->
 
 
 

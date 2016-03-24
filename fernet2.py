@@ -97,12 +97,17 @@ class Fernet2(object):
             data = base64.urlsafe_b64decode(token)
         except (TypeError, binascii.Error):
             raise InvalidToken
-        print("data = " , data)
-        if data == 0x80 or six.indexbytes(data, 0) == 0x80:
+        print("data = ", data)
+        if not data or six.indexbytes(data, 0) == 0x80:
             print("80 version\n")
             # TODO: if 80:
-            return self._f.decrypt(self, token, ttl)
-        elif data == 0x81 or six.indexbytes(data, 0) == 0x81:
+            try:
+                msg = self._f.decrypt(token, ttl)
+                return msg
+            except:
+                raise InvalidToken
+
+        elif not data or six.indexbytes(data, 0) == 0x81:
             print("81 version\n")
 
             ############ VERIFYING adata
@@ -284,10 +289,6 @@ class PWFernet(object):
 
         else:
             raise InvalidToken
-
-
-
-
 
 
 

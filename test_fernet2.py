@@ -149,30 +149,39 @@ class TestFernet2(object):
     """Test the new Fernet2 with this class. Make sure it tests all the
     functionalities offered by *Fernet2*.
     """
-    # 1. verify.json
     @json_parametrize2(
         ("adata", "secret", "ptxt", "ctxt", "iv"), "verify.json",
     )
     # TODO change to above params
     def test_decrypt(self, adata, secret, ptxt, ctxt, iv, backend,
                     monkeypatch):
-        print("testing ....1")
+        print("testing ....decrpyt")
         f = Fernet2(secret.encode("ascii"), backend=backend)
-        # current_time = calendar.timegm(iso8601.parse_date(now).utctimetuple())
-        # TODO  use orurandom instead of time to test IV
-        # monkeypatch.setattr(time, "time", lambda: current_time)
         payload = f.decrypt(ctxt.encode("ascii"), adata = adata)
         assert payload == ptxt.encode("ascii")
 
-    # # change variables
-    # @json_parametrize2(("desc", "ctxt", "adata", "ttl_sec", "secret"), "invalid.json")
-    # def test_invalid(self, secret, token, now, ttl_sec, backend, monkeypatch):
-    #     f = Fernet2(secret.encode("ascii"), backend=backend)
-    #     current_time = calendar.timegm(iso8601.parse_date(now).utctimetuple())
-    #     monkeypatch.setattr(time, "time", lambda: current_time)
-    #     with pytest.raises(InvalidToken):
-    #         f.decrypt(token.encode("ascii"), ttl=ttl_sec)
+    def test_encrypt(self, adata, secret, ptxt, ctxt, iv, backend,
+                    monkeypatch):
+        print("testing ....encrypt")
+        f = Fernet2(secret.encode("ascii"), backend=backend)
+        # is this correct or should I use this? base64.urlsafe_b64encode(os.urandom(32))
+        current_rand =  os.urandom(32)
+        # TODO  use orurandom instead of time to test IV
+        monkeypatch.setattr(os.urandom, "urandom", lambda: current_rand)
+        # would this even work to check decryption with another key?
+        payload = f.decrypt(ctxt.encode("ascii"), adata = adata)
+        assert payload == ptxt.encode("ascii")    
 
+        # I dont get the difference between test invalid and test verify, 
+        # do we need a test invalid and test verify for Fernet2?
+
+    def test_adata(self, adata, secret, ptxt, ctxt, iv, backend,
+                    monkeypatch):
+        print("testing ....adata")
+        f = Fernet2(secret.encode("ascii"), backend=backend)
+        # How?
+        # encrypt and create new associated data
+        # 
 
 
     # f = Fernet2(base64.urlsafe_b64encode(b"\x00" * 32), backend=default_backend())
@@ -184,20 +193,25 @@ class TestFernet2(object):
     # check the mac if it authenticates correctly or not
     # keep chaning associated data
 
-
 class TestPwFernet2(object):
     """
     This is to test the PwFernet class.
     """
+    #Test encrypt and test decrypt are both used already 
+    # for the lower lever Testfernet2 so they shouldn't be included here? 
+
+    # generate 1000 same cipher test with same password
+    # check tfor duplicates 
+
     # use the same password to encrypt and make sure nothing is repeated
-    password = "password"
-    f = PWFernet(password, backend=default_backend())
-    adata = "have funnnn"
-    tk = f.encrypt("spring break is  ??#$!$%@$#%@#$coming!!!", adata)
-    print(tk)
-    txt = f.decrypt(token=tk, adata = adata)
-    # f = Fernet(base64.urlsafe_b64encode(b"\x00" * 32))
-    print(txt)
+    # password = "password"
+    # f = PWFernet(password, backend=default_backend())
+    # adata = "have funnnn"
+    # tk = f.encrypt("spring break is  ??#$!$%@$#%@#$coming!!!", adata)
+    # print(tk)
+    # txt = f.decrypt(token=tk, adata = adata)
+    # # f = Fernet(base64.urlsafe_b64encode(b"\x00" * 32))
+    # print(txt)
 
     pass
 # t = TestFernet()

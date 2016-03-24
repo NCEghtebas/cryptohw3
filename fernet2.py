@@ -134,8 +134,6 @@ class Fernet2(object):
             # except InvalidSignature:
             #     raise InvalidToken
             ################ END-OF signature stuff from fernet.py
-            # TODO: get associated data
-            # check for correct associated data
 
             # iv = data[9:25]
             iv = data[1:17]
@@ -287,7 +285,6 @@ class PWFernet(object):
 
         else:
             raise InvalidToken
-
 
 
 class MultiFernet(object):
